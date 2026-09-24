@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.env
+dist/
+build/
+.pytest_cache/
+
+# 运行时缓存 / 产物 (不进版本库)
+/tmp/
+*_cache_*.json
+outputs/*.duckdb
+
+# 保留研究用的结果 CSV (可复现锚点)
+!outputs/

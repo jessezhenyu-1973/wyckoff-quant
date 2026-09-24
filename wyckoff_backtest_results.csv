@@ -1,0 +1,4 @@
+scheme,total_return,n_trades,win_rate,max_drawdown,ret_dd_ratio
+wyckoff_R1离场=开,40.71,73,34.2,8.87,4.59
+v18_atr,14.64,16,0.0,15.37,0.95
+single_stock_winrate,17,30,56.7,,
