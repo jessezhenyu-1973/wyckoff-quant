@@ -134,14 +134,22 @@ def v18_segments(df, atr_mult=2.5):
     return segs
 
 
-def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_pos=5):
+def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_pos=5,
+                       buy_order='code'):
     """事件驱动组合模拟: 持仓段即交易。entry日以10%资金买入(若名额与资金允许)。
     返回 dict: total_return / n_trades / win_rate / max_drawdown (%)
+
+    buy_order — 同一日多笔买入事件抢 max_pos 个槽位的优先级:
+      'code' : 按 thscode 字典序 (中性、可复现, 默认)。
+               注意: 历史版本按 dict 插入顺序, 结果对调用方信号字典顺序敏感
+               (同池同信号 不同顺序实测 +6%~+29%), 已废弃。
+      'seed'=int: 当日买入按 随机数(seed,code,date) 洗牌 — 用于估计方差区间。
     """
     cash = cash0
     holdings = {}
     realized = []
     equity_curve = []
+    import zlib
     events = defaultdict(list)
     for code, segs in all_segments.items():
         for s in segs:
@@ -155,8 +163,13 @@ def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_po
                 pnl = h['shares'] * (s['exit_price'] - h['entry_price'])
                 cash += h['shares'] * s['exit_price']
                 realized.append(pnl)
-        for typ, code, s in events.get(d, []):
-            if typ != 'buy' or code in holdings:
+        buys_today = [(code, s) for typ, code, s in events.get(d, []) if typ == 'buy']
+        if isinstance(buy_order, int):  # 方差估计: 稳定CRC32洗牌 (跨进程可复现)
+            buys_today.sort(key=lambda cs: zlib.crc32(f'{buy_order}|{cs[0]}|{d}'.encode()))
+        else:  # 'code': 字典序, 中性可复现
+            buys_today.sort(key=lambda cs: cs[0])
+        for code, s in buys_today:
+            if code in holdings:
                 continue
             if len(holdings) >= max_pos:
                 continue
