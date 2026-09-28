@@ -46,7 +46,7 @@ pools = {'全A': fullA, '深主板': sz_main, '沪主板': sh_main,
 print(f"\n{'池子':<8}{'均值%':>8}{'标准差':>8}{'中位%':>8}{'P10%':>8}{'P90%':>8}{'>0占比':>8}{'最好':>7}{'最差':>7}")
 for label, codes in pools.items():
     sub = {c: m2[c] for c in codes}
-    rets = [W.portfolio_simulate(sub, prices, calendar, 1e6, buy_order=s)['total_return']
+    rets = [W.portfolio_simulate(sub, prices, calendar, 1e6, buy_order=s, cost_bps=10)['total_return']
             for s in SEEDS]
     srt = sorted(rets)
     p10 = srt[int(0.1 * len(srt))]
