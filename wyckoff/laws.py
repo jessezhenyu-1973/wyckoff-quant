@@ -75,8 +75,11 @@ def wyckoff_volume_state(df, p=None):
 
 
 def minimal_law_segments(df, mode='laws', use_effort_filter=True, upstall_exit=False,
-                         stop_ma20=False, atr_mult=2.5, cooldown=20):
+                         stop_ma20=False, atr_mult=2.5, cooldown=20, lp=None):
     """极简双参数持仓段 (不用 S1 Spring). 口径与 wyckoff/portfolio.py 一致.
+
+    lp : LawParams 或兼容对象(需 DEMAND_TH/SUPPLY_TH/EFFORT_VOL/RESULT_EPS 等字段),
+          默认 LawParams()。不过拟合验证用 — 传不同阈值对象扫敏感性。
 
     入场 (i 日确认, i+1 日开盘进, 无前视):
       文章参数1 趋势: bull regime (close>MA20 且 MA20 重心向上)
@@ -91,7 +94,7 @@ def minimal_law_segments(df, mode='laws', use_effort_filter=True, upstall_exit=F
       离场后 cooldown 日冷却
     返回 segs: [{entry_date, entry_price, exit_date, exit_price, sig}] (YYYYMMDD)
     """
-    p = LawParams()
+    p = lp if lp is not None else LawParams()
     bull, ma = bull_regime(df, p)
     vs = wyckoff_volume_state(df, p)
     close = df['close']

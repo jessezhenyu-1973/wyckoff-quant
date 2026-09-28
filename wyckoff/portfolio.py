@@ -135,7 +135,7 @@ def v18_segments(df, atr_mult=2.5):
 
 
 def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_pos=5,
-                       buy_order='code'):
+                       buy_order='code', cost_bps=0.0):
     """事件驱动组合模拟: 持仓段即交易。entry日以10%资金买入(若名额与资金允许)。
     返回 dict: total_return / n_trades / win_rate / max_drawdown (%)
 
@@ -143,8 +143,14 @@ def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_po
       'code' : 按 thscode 字典序 (中性、可复现, 默认)。
                注意: 历史版本按 dict 插入顺序, 结果对调用方信号字典顺序敏感
                (同池同信号 不同顺序实测 +6%~+29%), 已废弃。
-      'seed'=int: 当日买入按 随机数(seed,code,date) 洗牌 — 用于估计方差区间。
+      'seed'=int: 当日买入按 CRC32(seed|code|date) 稳定洗牌 — 用于估计方差区间。
+
+    cost_bps — 单边交易成本(basis points), 买入/卖出各扣一次。
+      A股真实单边≈ 佣金2.5bp + 过户费~1bp + 滑点4~6bp ≈ 8~10bp;
+      卖出另加印花税5bp(2023-08后0.05%)。建议回测用 cost_bps=10 (保守, 双边20bp≈0.2%)。
+      默认 0.0 保持与历史结果可比 (历史数字=无成本, 偏高)。
     """
+    cb = cost_bps / 1e4
     cash = cash0
     holdings = {}
     realized = []
@@ -161,7 +167,7 @@ def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_po
             if typ == 'sell' and code in holdings:
                 h = holdings.pop(code)
                 pnl = h['shares'] * (s['exit_price'] - h['entry_price'])
-                cash += h['shares'] * s['exit_price']
+                cash += h['shares'] * s['exit_price'] * (1 - cb)
                 realized.append(pnl)
         buys_today = [(code, s) for typ, code, s in events.get(d, []) if typ == 'buy']
         if isinstance(buy_order, int):  # 方差估计: 稳定CRC32洗牌 (跨进程可复现)
@@ -177,10 +183,11 @@ def portfolio_simulate(all_segments, prices_by_code, calendar, cash0=1e6, max_po
             if not price:
                 continue
             alloc = cash * 0.10
-            if alloc < price * 10:
+            eff_price = price * (1 + cb)  # 计入买单边成本
+            if alloc < eff_price * 10:
                 continue
-            shares = int(alloc / price)
-            cash -= shares * price
+            shares = int(alloc / eff_price)
+            cash -= shares * eff_price
             holdings[code] = {'entry_price': price, 'shares': shares}
         eq = cash + sum(h['shares'] * prices_by_code[c].get(d, h['entry_price'])
                         for c, h in holdings.items())
