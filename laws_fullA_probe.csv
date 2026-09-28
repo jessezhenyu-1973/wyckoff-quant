@@ -1,0 +1,4 @@
+variant,n_stocks,total_return,max_drawdown,ret_dd_ratio,winrate_vs_v18,n_trades,win_rate
+M1 定律量能(净需求),5183,-20.25,26.71,-0.76,49.5,50,12.0
+M2 M1+滞涨离场,5183,27.57,15.5,1.78,52.6,194,34.0
+V18-ATR对照,5183,-2.09,18.23,-0.11,,29,0.0
